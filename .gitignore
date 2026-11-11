@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# 模擬相機影片檔很大，可隨時用 tools/make_fake_camera.py 重新產生
+tools/testdata/

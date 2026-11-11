@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#14141a" />
+    <title>WebAR 門市互動</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="ar-container"></div>
+
+      <section id="screen-intro" class="screen">
+        <div class="card">
+          <h1 id="intro-title">WebAR 門市互動</h1>
+          <p id="intro-desc" class="muted"></p>
+          <p class="note">按下開始後，瀏覽器會詢問是否允許使用相機。影像只在您的手機上即時辨識，不會上傳或儲存。</p>
+          <p id="inapp-warning" class="warn" hidden>
+            偵測到您正在 App 內建瀏覽器中開啟，相機可能無法使用。若失敗，請點右上角選單，改用 Safari 或 Chrome 開啟。
+          </p>
+          <button id="btn-start" class="btn primary">開始 AR 體驗</button>
+          <p id="intro-status" class="muted small"></p>
+        </div>
+      </section>
+
+      <section id="screen-loading" class="screen" hidden>
+        <div class="card center">
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="loading-text">載入中…</p>
+        </div>
+      </section>
+
+      <section id="screen-error" class="screen" hidden>
+        <div class="card">
+          <h2 id="error-title">發生問題</h2>
+          <p id="error-body"></p>
+          <button id="btn-retry" class="btn primary">重新嘗試</button>
+        </div>
+      </section>
+
+      <div id="hud" hidden>
+        <button id="btn-stop" class="btn small-btn">結束</button>
+        <div id="hint" class="hint">請將相機對準測試圖案</div>
+        <pre id="debug" hidden></pre>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

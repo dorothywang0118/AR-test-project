@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "poc-campaign",
+  "version": "poc-0.1.0",
+  "name": "WebAR 技術驗證",
+  "description": "請拿出測試圖案（AR TEST 001），按下開始後把相機對準它，小人偶就會出現。",
+  "trackingAsset": {
+    "url": "campaign/test-target-001.mind?v=poc-0.1.0",
+    "engine": "mindar",
+    "targetOrder": [
+      "TARGET-001"
+    ]
+  },
+  "targets": [
+    {
+      "id": "TARGET-001",
+      "name": "測試圖案 001"
+    }
+  ],
+  "characters": [
+    {
+      "id": "CHAR-001",
+      "name": "Pip（原創測試角色）",
+      "modelUrl": "campaign/pip.glb?v=poc-0.1.0"
+    }
+  ],
+  "experiences": [
+    {
+      "targetId": "TARGET-001",
+      "characterId": "CHAR-001",
+      "scale": 0.6,
+      "position": {
+        "x": 0,
+        "y": -0.3,
+        "z": 0.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "idleAnimation": "Idle",
+      "interactionAnimations": [
+        "Wave",
+        "Jump"
+      ]
+    }
+  ]
+}
