@@ -121,7 +121,7 @@ export class ArExperience {
       adapter.onTargetLost((id) => {
         this.lostEvents++;
         this.lastTargetState = `lost ${id}`;
-        $('hint').textContent = '請將相機對準測試圖案';
+        $('hint').textContent = '請將相機對準禮物盒圖案';
         $('hint').classList.remove('found');
       });
       adapter.onFrame((dt) => {
@@ -145,7 +145,7 @@ export class ArExperience {
       await adapter.startCamera();
       this.show('ar');
       $('debug').hidden = !this.debug;
-      $('hint').textContent = '請將相機對準測試圖案';
+      $('hint').textContent = '請將相機對準禮物盒圖案';
       $('hint').classList.remove('found');
     } catch (e) {
       await this.teardown();
