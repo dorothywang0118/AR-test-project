@@ -49,7 +49,10 @@ export class CharacterController {
   private bubbleTime = 0;
   private bubbleTotal = 0;
   private bubbleTop = 1.2;
-  private bubbleTex = new Map<string, { tex: CanvasTexture; aspect: number }>();
+  /** Set by the page: read a bubble line aloud. force = the customer tapped this character. */
+  onSay: ((text: string, characterId: string, force: boolean) => void) | null = null;
+  private forceSpeak = false;
+  private bubbleTex = new Map<string, { tex: CanvasTexture; aspect: number; hpx: number }>();
   private mixer: AnimationMixer | null = null;
   private clips = new Map<string, AnimationClip>();
   private idle: AnimationAction | null = null;
@@ -152,7 +155,7 @@ export class CharacterController {
   }
 
   // ---- speech bubble (口頭禪) ------------------------------------------------------------
-  private makeBubble(text: string): { tex: CanvasTexture; aspect: number } {
+  private makeBubble(text: string): { tex: CanvasTexture; aspect: number; hpx: number } {
     const cached = this.bubbleTex.get(text);
     if (cached) return cached;
     const fs = 44;
@@ -160,8 +163,16 @@ export class CharacterController {
     const font = `700 ${fs}px "PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif`;
     const probe = document.createElement('canvas').getContext('2d')!;
     probe.font = font;
-    const w = Math.ceil(probe.measureText(text).width) + pad * 2;
-    const h = fs + pad * 2;
+    // Wrap long lines: break at commas first, then every 9 characters.
+    const lines: string[] = [];
+    for (const part of text.split(/(?<=，)/)) {
+      const n = Math.ceil(part.length / 9);
+      const per = Math.ceil(part.length / n); // even split, avoids a lone trailing character
+      for (let i = 0; i < part.length; i += per) lines.push(part.slice(i, i + per));
+    }
+    const lineH = Math.round(fs * 1.25);
+    const w = Math.ceil(Math.max(...lines.map((l) => probe.measureText(l).width))) + pad * 2;
+    const h = lineH * lines.length + pad * 2 - (lineH - fs);
     const tail = 22;
     const cv = document.createElement('canvas');
     cv.width = w + 12;
@@ -190,10 +201,10 @@ export class CharacterController {
     g.font = font;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText(text, w / 2, h / 2 + 2);
+    lines.forEach((l, i) => g.fillText(l, w / 2, pad + (lineH - (lineH - fs)) / 2 + i * lineH + 2));
     const tex = new CanvasTexture(cv);
     tex.colorSpace = SRGBColorSpace;
-    const entry = { tex, aspect: cv.width / cv.height };
+    const entry = { tex, aspect: cv.width / cv.height, hpx: cv.height };
     this.bubbleTex.set(text, entry);
     return entry;
   }
@@ -204,7 +215,8 @@ export class CharacterController {
     const list = this.phrases[clipName] ?? this.phrases['*'];
     if (!list || list.length === 0) return;
     const text = list[Math.floor(Math.random() * list.length)];
-    const { tex, aspect } = this.makeBubble(text);
+    const { tex, aspect, hpx } = this.makeBubble(text);
+    this.onSay?.(text, this.cfg.characterId, this.forceSpeak);
     if (!this.bubble) {
       const mat = new SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
       this.bubble = new Sprite(mat);
@@ -214,7 +226,7 @@ export class CharacterController {
     const mat = this.bubble.material as SpriteMaterial;
     mat.map = tex;
     mat.needsUpdate = true;
-    const height = 0.3;
+    const height = (0.3 * hpx) / 130; // same text size for 1 or several lines
     this.bubble.userData.h = height;
     this.bubble.userData.w = height * aspect;
     this.bubble.center.set(0.5, 0); // anchor at the tail tip
@@ -262,7 +274,9 @@ export class CharacterController {
     this.raycaster.setFromCamera(ndc, camera);
     const hits = this.raycaster.intersectObject(this.root, true).filter((h) => h.object instanceof Mesh);
     if (hits.length === 0) return false;
+    this.forceSpeak = true;
     this.triggerInteraction();
+    this.forceSpeak = false;
     return true;
   }
 

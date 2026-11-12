@@ -32,6 +32,8 @@ export interface CharacterDef {
   modelUrl: string;
   /** Catchphrases (口頭禪) shown in a speech bubble. Key = animation clip name; "*" = used for any clip without its own list. */
   phrases?: Record<string, string[]>;
+  /** Text-to-speech voice tweaks so each character sounds different (pitch/rate 0.1–2). */
+  voice?: { pitch?: number; rate?: number };
 }
 
 export interface ExperienceDef {

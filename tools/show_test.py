@@ -23,6 +23,12 @@ with sync_playwright() as pw:
         "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"])
     page = b.new_context(viewport={"width": 390, "height": 760}, is_mobile=True, has_touch=True).new_page()
     errs = []
+    page.add_init_script("""
+      window.__spoken = [];
+      const fake = { speaking: false, getVoices: () => [], addEventListener: () => {}, cancel: () => {}, speak: (u) => window.__spoken.push([u.text, u.pitch, u.rate, u.lang]) };
+      Object.defineProperty(window, 'speechSynthesis', { value: fake });
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+    """)
     page.on("pageerror", lambda e: errs.append(str(e)))
     page.on("console", lambda m: errs.append(m.text) if m.type == "error" and "404" not in m.text else None)
     page.goto(f"http://127.0.0.1:{srv.server_address[1]}/index.html" + ("?debug=1" if os.environ.get("DEBUG") else ""))
@@ -39,5 +45,6 @@ with sync_playwright() as pw:
         time.sleep(2)
     if os.environ.get("DEBUG"):
         print(page.inner_text("#debug"))
+    print("spoken:", page.evaluate("window.__spoken"))
     print("errors:", errs)
     b.close()

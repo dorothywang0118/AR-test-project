@@ -3,6 +3,7 @@ import type { CampaignManifest } from '@shared/types/campaign';
 import { ARError, type AREngineAdapter } from '../ar/adapters/AREngineAdapter';
 import { addDefaultLights, CharacterController } from '../ar/renderer/CharacterController';
 import { ShowDirector } from '../ar/renderer/ShowDirector';
+import { Speaker } from '../ar/speech';
 import { loadManifest, resolveUrl } from '../services/campaignService';
 
 type Screen = 'intro' | 'loading' | 'error' | 'ar';
@@ -33,6 +34,7 @@ export class ArExperience {
   private stages = new Map<string, { group: Group; backdrop: Mesh | null; init: boolean; t: number; prev: Vector3 }>();
   private removeLights: (() => void) | null = null;
   private manifest: CampaignManifest | null = null;
+  private speaker = new Speaker();
   private debug = new URLSearchParams(location.search).has('debug');
   private startedAt = 0;
   private firstFoundMs: number | null = null;
@@ -51,6 +53,9 @@ export class ArExperience {
     $('btn-start').addEventListener('click', () => void this.start());
     $('btn-retry').addEventListener('click', () => void this.start());
     $('btn-stop').addEventListener('click', () => void this.stop());
+    $('btn-sound').addEventListener('click', () => {
+      $('btn-sound').textContent = this.speaker.toggle() ? '🔊' : '🔇';
+    });
     if (/Line\/|FBAN|FBAV|Instagram|MicroMessenger/i.test(navigator.userAgent)) $('inapp-warning').hidden = false;
     try {
       this.manifest = await loadManifest();
@@ -86,6 +91,7 @@ export class ArExperience {
       if (!this.manifest) return this.showError(new ARError('TARGET_LOAD_FAILED', 'manifest'));
     }
     const m = this.manifest;
+    this.speaker.unlock(); // iOS: speech may only start from a tap, and this runs inside the Start tap
     await this.teardown(); // clean slate on retry
     this.show('loading', '準備 AR 引擎…');
     this.startedAt = performance.now();
@@ -127,6 +133,7 @@ export class ArExperience {
         const def = m.characters.find((c) => c.id === exp.characterId);
         if (!def) throw new Error(`character ${exp.characterId} missing in manifest`);
         const ctrl = new CharacterController(exp, def.phrases);
+        ctrl.onSay = (text, _id, force) => this.speaker.speak(text, def.voice, force);
         await ctrl.load(resolveUrl(def.modelUrl), this.stages.get(exp.targetId)!.group);
         this.characters.push(ctrl);
       }
@@ -152,6 +159,7 @@ export class ArExperience {
         this.visible.delete(id);
         this.lastTargetState = `lost ${id}`;
         this.shows.get(id)?.stop();
+        this.speaker.cancel();
         $('hint').textContent = '請將相機對準禮物盒圖案';
         $('hint').classList.remove('found');
       });
@@ -260,6 +268,7 @@ export class ArExperience {
   private async teardown(): Promise<void> {
     if (this.tapHandler) $('ar-container').removeEventListener('pointerdown', this.tapHandler);
     this.tapHandler = null;
+    this.speaker.cancel();
     this.characters.forEach((c) => c.dispose());
     this.characters = [];
     this.shows.clear();
