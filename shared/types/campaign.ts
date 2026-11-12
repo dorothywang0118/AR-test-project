@@ -41,7 +41,7 @@ export interface ExperienceDef {
   /** Euler rotation in DEGREES. x:0 = model upright against the target plane (wall posters); x:90 = standing out of a flat table target. */
   rotation: Vec3;
   idleAnimation: string;
-  /** Clips played one after another on each tap, then back to idle. */
+  /** Pool of clips; each tap (or the idle timer) plays one at random, never the same twice in a row, then back to idle. */
   interactionAnimations: string[];
 }
 

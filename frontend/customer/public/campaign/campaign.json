@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "campaignId": "poc-campaign",
-  "version": "poc-0.2.0",
+  "version": "poc-0.3.0",
   "name": "門市互動 AR",
-  "description": "請拿出禮物盒圖案，按下開始後把相機對準它，門市小店員就會出現！",
+  "description": "請拿出禮物盒圖案，按下開始後把相機對準它，門市夥伴們就會出現！點一下小人看看會發生什麼事。",
   "trackingAsset": {
-    "url": "campaign/gift-target.mind?v=poc-0.2.0",
+    "url": "campaign/gift-target.mind?v=poc-0.3.0",
     "engine": "mindar",
     "targetOrder": [
       "TARGET-GIFT-001"
@@ -19,19 +19,39 @@
   ],
   "characters": [
     {
-      "id": "CHAR-STAFF-001",
-      "name": "門市小店員（原創）",
-      "modelUrl": "campaign/staff.glb?v=poc-0.2.0"
+      "id": "CHAR-CHIBI-A",
+      "name": "門市夥伴 A（Q版・原創）",
+      "modelUrl": "campaign/char-a.glb?v=poc-0.3.0"
+    },
+    {
+      "id": "CHAR-CHIBI-B",
+      "name": "門市夥伴 B（Q版・原創）",
+      "modelUrl": "campaign/char-b.glb?v=poc-0.3.0"
+    },
+    {
+      "id": "CHAR-CHIBI-C",
+      "name": "門市夥伴 C（Q版・原創）",
+      "modelUrl": "campaign/char-c.glb?v=poc-0.3.0"
+    },
+    {
+      "id": "CHAR-CHIBI-D",
+      "name": "門市夥伴 D（Q版・原創）",
+      "modelUrl": "campaign/char-d.glb?v=poc-0.3.0"
+    },
+    {
+      "id": "CHAR-CHIBI-E",
+      "name": "門市夥伴 E（Q版・原創）",
+      "modelUrl": "campaign/char-e.glb?v=poc-0.3.0"
     }
   ],
   "experiences": [
     {
       "targetId": "TARGET-GIFT-001",
-      "characterId": "CHAR-STAFF-001",
-      "scale": 0.6,
+      "characterId": "CHAR-CHIBI-A",
+      "scale": 0.42,
       "position": {
-        "x": 0,
-        "y": -0.3,
+        "x": -0.4,
+        "y": -0.32,
         "z": 0.02
       },
       "rotation": {
@@ -41,8 +61,113 @@
       },
       "idleAnimation": "Idle",
       "interactionAnimations": [
-        "Wave",
-        "Jump"
+        "Pat",
+        "HighFive",
+        "Cry",
+        "Sway",
+        "Angry",
+        "Think",
+        "Flop"
+      ]
+    },
+    {
+      "targetId": "TARGET-GIFT-001",
+      "characterId": "CHAR-CHIBI-B",
+      "scale": 0.42,
+      "position": {
+        "x": -0.2,
+        "y": -0.32,
+        "z": 0.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "idleAnimation": "Idle",
+      "interactionAnimations": [
+        "Pat",
+        "HighFive",
+        "Cry",
+        "Sway",
+        "Angry",
+        "Think",
+        "Flop"
+      ]
+    },
+    {
+      "targetId": "TARGET-GIFT-001",
+      "characterId": "CHAR-CHIBI-C",
+      "scale": 0.42,
+      "position": {
+        "x": 0.0,
+        "y": -0.32,
+        "z": 0.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "idleAnimation": "Idle",
+      "interactionAnimations": [
+        "Pat",
+        "HighFive",
+        "Cry",
+        "Sway",
+        "Angry",
+        "Think",
+        "Flop"
+      ]
+    },
+    {
+      "targetId": "TARGET-GIFT-001",
+      "characterId": "CHAR-CHIBI-D",
+      "scale": 0.42,
+      "position": {
+        "x": 0.2,
+        "y": -0.32,
+        "z": 0.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "idleAnimation": "Idle",
+      "interactionAnimations": [
+        "Pat",
+        "HighFive",
+        "Cry",
+        "Sway",
+        "Angry",
+        "Think",
+        "Flop"
+      ]
+    },
+    {
+      "targetId": "TARGET-GIFT-001",
+      "characterId": "CHAR-CHIBI-E",
+      "scale": 0.42,
+      "position": {
+        "x": 0.4,
+        "y": -0.32,
+        "z": 0.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "idleAnimation": "Idle",
+      "interactionAnimations": [
+        "Pat",
+        "HighFive",
+        "Cry",
+        "Sway",
+        "Angry",
+        "Think",
+        "Flop"
       ]
     }
   ]

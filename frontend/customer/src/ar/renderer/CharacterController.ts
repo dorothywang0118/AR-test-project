@@ -39,10 +39,23 @@ export class CharacterController {
   private idle: AnimationAction | null = null;
   private current: AnimationAction | null = null;
   private queue: string[] = [];
-  private tapCount = 0;
+  private lastName = '';
+  private autoTimer = 0;
   private raycaster = new Raycaster();
 
-  constructor(private readonly cfg: ExperienceDef) {}
+  constructor(private readonly cfg: ExperienceDef) {
+    this.autoTimer = this.nextAutoDelay();
+  }
+
+  /** Seconds until the character performs a random action by itself (so it feels alive without taps). */
+  private nextAutoDelay(): number {
+    return 6 + Math.random() * 8;
+  }
+
+  private isShown(): boolean {
+    for (let o: Object3D | null = this.root; o; o = o.parent) if (!o.visible) return false;
+    return true;
+  }
 
   async load(modelUrl: string, parent: Object3D): Promise<void> {
     const gltf = await new GLTFLoader().loadAsync(modelUrl);
@@ -74,11 +87,17 @@ export class CharacterController {
   /** Call every frame. */
   update(deltaSeconds: number): void {
     this.mixer?.update(deltaSeconds);
+    if (this.queue.length === 0 && this.root && this.isShown()) {
+      this.autoTimer -= deltaSeconds;
+      if (this.autoTimer <= 0) this.triggerInteraction();
+    }
   }
 
   /** Target found again → restart from idle so the character never reappears mid-jump. */
-  reset(): void {
+  reset(targetId?: string): void {
+    if (targetId && targetId !== this.cfg.targetId) return;
     this.queue = [];
+    this.autoTimer = this.nextAutoDelay();
     this.mixer?.stopAllAction();
     this.current = null;
     this.playIdle();
@@ -105,8 +124,11 @@ export class CharacterController {
     if (this.queue.length > 0) return; // ignore taps while an interaction is playing
     const names = this.cfg.interactionAnimations.filter((n) => this.clips.has(n));
     if (names.length === 0 || !this.mixer) return;
-    const name = names[this.tapCount % names.length];
-    this.tapCount += 1;
+    // Random pick, never the same clip twice in a row.
+    const pool = names.length > 1 ? names.filter((n) => n !== this.lastName) : names;
+    const name = pool[Math.floor(Math.random() * pool.length)];
+    this.lastName = name;
+    this.autoTimer = this.nextAutoDelay();
     this.queue = [name];
     const action = this.mixer.clipAction(this.clips.get(name)!);
     action.reset().setLoop(LoopOnce, 1);

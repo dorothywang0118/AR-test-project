@@ -26,7 +26,7 @@ const ERROR_TEXT: Record<string, { title: string; body: string }> = {
 /** Orchestrates one AR session: manifest → engine → characters → camera. Re-startable. */
 export class ArExperience {
   private adapter: AREngineAdapter | null = null;
-  private characters = new Map<string, CharacterController>(); // targetId → controller
+  private characters: CharacterController[] = []; // several characters can share one target
   private removeLights: (() => void) | null = null;
   private manifest: CampaignManifest | null = null;
   private debug = new URLSearchParams(location.search).has('debug');
@@ -107,14 +107,14 @@ export class ArExperience {
         if (!def) throw new Error(`character ${exp.characterId} missing in manifest`);
         const ctrl = new CharacterController(exp);
         await ctrl.load(resolveUrl(def.modelUrl), adapter.getAnchor(exp.targetId));
-        this.characters.set(exp.targetId, ctrl);
+        this.characters.push(ctrl);
       }
 
       adapter.onTargetFound((id) => {
         this.foundEvents++;
         this.lastTargetState = `found ${id}`;
         if (this.firstFoundMs === null) this.firstFoundMs = Math.round(performance.now() - this.startedAt);
-        this.characters.get(id)?.reset();
+        this.characters.forEach((c) => c.reset(id));
         $('hint').textContent = '找到了！點一下小人偶試試看';
         $('hint').classList.add('found');
       });
@@ -184,7 +184,7 @@ export class ArExperience {
     if (this.tapHandler) $('ar-container').removeEventListener('pointerdown', this.tapHandler);
     this.tapHandler = null;
     this.characters.forEach((c) => c.dispose());
-    this.characters.clear();
+    this.characters = [];
     this.removeLights?.();
     this.removeLights = null;
     if (this.adapter) {
