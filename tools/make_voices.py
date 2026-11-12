@@ -8,8 +8,10 @@ import sherpa_onnx, soundfile as sf
 M = sys.argv[1].rstrip("/") + "/"
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend", "customer", "public", "campaign")
 # speaker id (3-57 female, 58-102 male) and speed per character
-VOICES = {"CHAR-CHIBI-A": (13, 0.95), "CHAR-CHIBI-B": (92, 0.9), "CHAR-CHIBI-C": (68, 0.95),
-          "CHAR-CHIBI-D": (11, 1.05), "CHAR-CHIBI-E": (31, 1.05)}
+# 店長: 40s woman, medium pace / 羽辰: 25 man, mid pitch, fast / 峻亘: 27 man, low and slow /
+# 小逸文: 30 woman, lower pitch, fast and decisive / 佳韻: 28 woman, gentle "big sister", medium pace
+VOICES = {"CHAR-CHIBI-A": (13, 1.0), "CHAR-CHIBI-B": (92, 1.15), "CHAR-CHIBI-C": (68, 0.85),
+          "CHAR-CHIBI-D": (57, 1.15), "CHAR-CHIBI-E": (25, 1.0)}
 
 
 def speakable(t):
@@ -39,6 +41,6 @@ for ch in camp["characters"]:
         rel = f"voice/{short}/{i:02d}.mp3"
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", wav, "-af", "loudnorm=I=-16:TP=-1.5", "-ar", "24000",
                         "-ac", "1", "-b:a", "48k", os.path.join(ROOT, rel)], check=True)
-        manifest[ch["id"]][line] = "campaign/" + rel
+        manifest[ch["id"]][line] = "campaign/" + rel + "?v=" + camp["version"]
     print(ch["id"], len(lines), flush=True)
 json.dump(manifest, open(os.path.join(ROOT, "voice", "manifest.json"), "w"), ensure_ascii=False)
