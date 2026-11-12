@@ -43,6 +43,14 @@ export class CharacterController {
   private autoTimer = 0;
   private raycaster = new Raycaster();
 
+  get characterId(): string {
+    return this.cfg.characterId;
+  }
+
+  get targetId(): string {
+    return this.cfg.targetId;
+  }
+
   constructor(private readonly cfg: ExperienceDef) {
     this.autoTimer = this.nextAutoDelay();
   }
@@ -87,7 +95,7 @@ export class CharacterController {
   /** Call every frame. */
   update(deltaSeconds: number): void {
     this.mixer?.update(deltaSeconds);
-    if (this.queue.length === 0 && this.root && this.isShown()) {
+    if (this.cfg.autoPlay !== false && this.queue.length === 0 && this.root && this.isShown()) {
       this.autoTimer -= deltaSeconds;
       if (this.autoTimer <= 0) this.triggerInteraction();
     }
@@ -136,6 +144,22 @@ export class CharacterController {
     this.current?.fadeOut(0.15);
     action.fadeIn(0.15).play();
     this.current = action;
+  }
+
+  /** Play one named clip now (used by the show director). @returns clip length in seconds, 0 if missing. */
+  play(name: string): number {
+    const clip = this.clips.get(name);
+    if (!clip || !this.mixer) return 0;
+    this.queue = [name];
+    this.lastName = name;
+    this.autoTimer = this.nextAutoDelay();
+    const action = this.mixer.clipAction(clip);
+    action.reset().setLoop(LoopOnce, 1);
+    action.clampWhenFinished = false;
+    this.current?.fadeOut(0.15);
+    action.fadeIn(0.15).play();
+    this.current = action;
+    return clip.duration;
   }
 
   private onClipFinished(): void {

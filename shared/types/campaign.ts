@@ -41,8 +41,19 @@ export interface ExperienceDef {
   /** Euler rotation in DEGREES. x:0 = model upright against the target plane (wall posters); x:90 = standing out of a flat table target. */
   rotation: Vec3;
   idleAnimation: string;
+  /** false = no random self-play (used when a show director drives the characters). Default true. */
+  autoPlay?: boolean;
   /** Pool of clips; each tap (or the idle timer) plays one at random, never the same twice in a row, then back to idle. */
   interactionAnimations: string[];
+}
+
+/** A scripted scene for characters sharing one target: steps run one after another, then loop. */
+export interface ShowDef {
+  targetId: string;
+  steps: {
+    /** characterId → clip name. Every clip in a step starts together; the step ends when the longest finishes. */
+    clips: Record<string, string>;
+  }[];
 }
 
 export interface CampaignManifest {
@@ -56,4 +67,5 @@ export interface CampaignManifest {
   targets: TargetDef[];
   characters: CharacterDef[];
   experiences: ExperienceDef[];
+  shows?: ShowDef[];
 }

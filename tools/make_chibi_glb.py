@@ -624,6 +624,72 @@ def build_anims(b, c):
                     lin("Sweat", "translation", [0.8, 3.3], [(0.22, 0.36, 0.1), (0.24, 0.2, 0.1)]),
                     ] + expr(T, ["EyesX", "MouthFlat"], ["EyesOpen", "MouthSmile"], t0=0.3, t1=3.5))
 
+    # ================= clips for the group scene (characters interact with each other) =================
+    # Layout assumption: neighbours stand side by side, left -> right = A B C D E.
+
+    # ---------------- Cheer (both arms up, hopping)
+    T = 3.0
+    hk = [0, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9, 2.2, T]
+    hv = [0, 0, 0.08, 0, 0, 0.08, 0, 0, 0]
+    b.anim("Cheer", [dur(T),
+                     lin("Upper", "translation", hk, [(0, v, 0) for v in hv]),
+                     lin("ArmL", "rotation", [0, 0.3, 2.5, T], [qz(aL), qz(-2.2), qz(-2.2), qz(aL)]),
+                     lin("ArmR", "rotation", [0, 0.3, 2.5, T], [qz(aR), qz(2.2), qz(2.2), qz(aR)]),
+                     lin("ForeL", "rotation", [0, 0.3, 2.5, T], [qz(0), qz(-0.25), qz(-0.25), qz(0)]),
+                     lin("ForeR", "rotation", [0, 0.3, 2.5, T], [qz(0), qz(0.25), qz(0.25), qz(0)]),
+                     appear("S1", [0, 0.5, 2.4], [False, True, False]),
+                     appear("S2", [0, 0.8, 2.5], [False, True, False]),
+                     lin("S1", "translation", [0.5, 2.4], [(-0.3, 1.0, 0.1), (-0.34, 1.12, 0.1)]),
+                     lin("S2", "translation", [0.8, 2.5], [(0.3, 1.0, 0.1), (0.34, 1.12, 0.1)]),
+                     ] + expr(T, ["EyesHappy", "MouthOpen"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- FiveR / FiveL (high-five with the neighbour on that side)
+    for nm, sx in (("FiveR", 1), ("FiveL", -1)):
+        T = 2.6
+        arm, fore = ("ArmR", "ForeR") if sx > 0 else ("ArmL", "ForeL")
+        other = "ArmL" if sx > 0 else "ArmR"
+        base = aR if sx > 0 else aL
+        up = 1.9 * sx
+        b.anim(nm, [dur(T),
+                    lin("Upper", "rotation", [0, 0.4, 2.0, T], [qy(0), qy(0.5 * sx), qy(0.5 * sx), qy(0)]),
+                    lin("Head", "rotation", [0, 0.4, 2.0, T], [qy(0), qy(0.2 * sx), qy(0.2 * sx), qy(0)]),
+                    lin(arm, "rotation", [0, 0.4, 1.0, 1.15, 1.4, 2.0, T],
+                        [qz(base), qz(up), qz(up), qz(up + 0.1 * sx), qz(up), qz(up), qz(base)]),
+                    lin(fore, "rotation", [0, 0.4, 2.0, T], [qz(0), qz(0.3 * sx), qz(0.3 * sx), qz(0)]),
+                    lin(other, "rotation", [0, 0.5, T], [qz(-base), qz(-base * 1.2), qz(-base)]),
+                    appear("S1", [0, 1.1, 1.9], [False, True, False]),
+                    lin("S1", "translation", [1.1, 1.9], [(0.27 * sx, 0.62, 0.12), (0.27 * sx, 0.72, 0.12)]),
+                    ] + expr(T, ["EyesHappy", "MouthOpen"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- PatShoulderR / PatShoulderL (pat the neighbour's shoulder)
+    for nm, sx in (("PatShoulderR", 1), ("PatShoulderL", -1)):
+        T = 2.6
+        arm = "ArmR" if sx > 0 else "ArmL"
+        fore = "ForeR" if sx > 0 else "ForeL"
+        base = aR if sx > 0 else aL
+        tap = [0, 0.5, 0.8, 1.1, 1.4, 1.7, 2.0, T]
+        angs = [base, 1.45 * sx, 1.7 * sx, 1.45 * sx, 1.7 * sx, 1.45 * sx, 1.45 * sx, base]
+        b.anim(nm, [lin("Root", "translation", [0, 0.5, 2.0, T], [(0, 0, 0), (0.1 * sx, 0, 0), (0.1 * sx, 0, 0), (0, 0, 0)]),
+                    lin("Upper", "rotation", [0, 0.5, 2.0, T], [qy(0), qy(0.4 * sx), qy(0.4 * sx), qy(0)]),
+                    lin(arm, "rotation", tap, [qz(a) for a in angs]),
+                    lin(fore, "rotation", [0, 0.5, 2.0, T], [qz(0), qz(0.15 * sx), qz(0.15 * sx), qz(0)]),
+                    appear("H1", [0, 0.9, 2.2], [False, True, False]),
+                    lin("H1", "translation", [0.9, 2.2], [(0.42 * sx, 0.7, 0.1), (0.46 * sx, 0.85, 0.1)]),
+                    ] + expr(T, ["EyesHappy"], ["EyesOpen"]))
+
+    # ---------------- Shy (gets patted: head down, happy)
+    T = 2.6
+    b.anim("Shy", [dur(T),
+                   lin("Head", "rotation", [0, 0.5, 2.0, T], [qz(0), qmul(qz(0.12), qx(0.2)), qmul(qz(0.12), qx(0.2)), qz(0)]),
+                   lin("Upper", "translation", [0, 0.5, 2.0, T], [(0, 0, 0), (0, -0.02, 0), (0, -0.02, 0), (0, 0, 0)]),
+                   lin("ArmL", "rotation", [0, 0.5, 2.0, T], [qz(aL), qz(aL + 0.35), qz(aL + 0.35), qz(aL)]),
+                   lin("ArmR", "rotation", [0, 0.5, 2.0, T], [qz(aR), qz(aR - 0.35), qz(aR - 0.35), qz(aR)]),
+                   appear("H1", [0, 0.6, 2.3], [False, True, False]),
+                   appear("H2", [0, 0.9, 2.3], [False, True, False]),
+                   lin("H1", "translation", [0.6, 2.3], [(-0.2, 0.98, 0.1), (-0.26, 1.15, 0.1)]),
+                   lin("H2", "translation", [0.9, 2.3], [(0.22, 0.95, 0.1), (0.28, 1.12, 0.1)]),
+                   ] + expr(T, ["EyesHappy"], ["EyesOpen"]))
+
 
 if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else "."

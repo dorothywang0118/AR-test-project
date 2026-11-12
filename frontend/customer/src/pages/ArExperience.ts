@@ -2,6 +2,7 @@ import { Vector2 } from 'three';
 import type { CampaignManifest } from '@shared/types/campaign';
 import { ARError, type AREngineAdapter } from '../ar/adapters/AREngineAdapter';
 import { addDefaultLights, CharacterController } from '../ar/renderer/CharacterController';
+import { ShowDirector } from '../ar/renderer/ShowDirector';
 import { loadManifest, resolveUrl } from '../services/campaignService';
 
 type Screen = 'intro' | 'loading' | 'error' | 'ar';
@@ -27,6 +28,7 @@ const ERROR_TEXT: Record<string, { title: string; body: string }> = {
 export class ArExperience {
   private adapter: AREngineAdapter | null = null;
   private characters: CharacterController[] = []; // several characters can share one target
+  private shows = new Map<string, ShowDirector>(); // targetId → scripted group scene
   private removeLights: (() => void) | null = null;
   private manifest: CampaignManifest | null = null;
   private debug = new URLSearchParams(location.search).has('debug');
@@ -110,21 +112,30 @@ export class ArExperience {
         this.characters.push(ctrl);
       }
 
+      for (const show of m.shows ?? []) {
+        const chars = new Map<string, CharacterController>();
+        this.characters.filter((c) => c.targetId === show.targetId).forEach((c) => chars.set(c.characterId, c));
+        this.shows.set(show.targetId, new ShowDirector(show, chars));
+      }
+
       adapter.onTargetFound((id) => {
         this.foundEvents++;
         this.lastTargetState = `found ${id}`;
         if (this.firstFoundMs === null) this.firstFoundMs = Math.round(performance.now() - this.startedAt);
         this.characters.forEach((c) => c.reset(id));
+        this.shows.get(id)?.start();
         $('hint').textContent = '找到了！點一下小人偶試試看';
         $('hint').classList.add('found');
       });
       adapter.onTargetLost((id) => {
         this.lostEvents++;
         this.lastTargetState = `lost ${id}`;
+        this.shows.get(id)?.stop();
         $('hint').textContent = '請將相機對準禮物盒圖案';
         $('hint').classList.remove('found');
       });
       adapter.onFrame((dt) => {
+        this.shows.forEach((s) => s.update(dt));
         this.characters.forEach((c) => c.update(dt));
         this.tickDebug();
       });
@@ -185,6 +196,7 @@ export class ArExperience {
     this.tapHandler = null;
     this.characters.forEach((c) => c.dispose());
     this.characters = [];
+    this.shows.clear();
     this.removeLights?.();
     this.removeLights = null;
     if (this.adapter) {
