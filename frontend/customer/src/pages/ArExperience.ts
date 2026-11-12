@@ -37,6 +37,7 @@ export class ArExperience {
   private foundEvents = 0;
   private lostEvents = 0;
   private lastTargetState = '—';
+  private visible = new Set<string>();
   private taps = 0;
   private tapHits = 0;
   private frames = 0;
@@ -120,6 +121,7 @@ export class ArExperience {
 
       adapter.onTargetFound((id) => {
         this.foundEvents++;
+        this.visible.add(id);
         this.lastTargetState = `found ${id}`;
         if (this.firstFoundMs === null) this.firstFoundMs = Math.round(performance.now() - this.startedAt);
         this.characters.forEach((c) => c.reset(id));
@@ -129,6 +131,7 @@ export class ArExperience {
       });
       adapter.onTargetLost((id) => {
         this.lostEvents++;
+        this.visible.delete(id);
         this.lastTargetState = `lost ${id}`;
         this.shows.get(id)?.stop();
         $('hint').textContent = '請將相機對準禮物盒圖案';
@@ -177,6 +180,7 @@ export class ArExperience {
           `first detect: ${this.firstFoundMs ?? '—'} ms (from tap Start)\n` +
           `found/lost events: ${this.foundEvents}/${this.lostEvents}\n` +
           `target: ${this.lastTargetState}\n` +
+          `visible: ${[...this.visible].join(',') || '—'}\n` +
           `taps hit/total: ${this.tapHits}/${this.taps}\n` +
           `dpr: ${window.devicePixelRatio}  ${innerWidth}x${innerHeight}\n` +
           `UA: ${navigator.userAgent}`;

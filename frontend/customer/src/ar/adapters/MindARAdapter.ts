@@ -36,7 +36,7 @@ export class MindARAdapter implements AREngineAdapter {
     this.mindar = new MindARThree({
       container: this.container,
       imageTargetSrc: trackingAssetUrl,
-      maxTrack: Math.max(1, targetIds.length),
+      maxTrack: 1, // one scan image → one scene; never show two targets at once
       // We draw our own loading / scanning / error UI, so turn MindAR's built-in UI off.
       uiLoading: 'no',
       uiScanning: 'no',

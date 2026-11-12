@@ -14,12 +14,12 @@ PAL_ALL = [(255,99,132),(255,193,7),(76,201,240),(129,199,132),(171,130,255),(25
 
 # bg, box, ribbon, accent, pattern, ribbon style, confetti palette indices (ordered per variant), seed
 VARS = [
-    dict(bg=(255,240,244), box=(255,99,132),  rib=(255,193,7),  acc=(255,255,255), pat="dots",    rs="cross", seed=101),
-    dict(bg=(232,246,255), box=(60,140,230),  rib=(255,255,255),acc=(255,193,7),   pat="stripes", rs="v",     seed=202),
-    dict(bg=(255,243,224), box=(230,60,60),   rib=(255,214,64), acc=(255,255,255), pat="checks",  rs="diag",  seed=303),
-    dict(bg=(236,250,236), box=(60,170,100),  rib=(255,120,160),acc=(255,255,255), pat="zigzag",  rs="h",     seed=404),
-    dict(bg=(244,238,255), box=(150,100,230), rib=(255,214,64), acc=(255,255,255), pat="stars",   rs="cross", seed=505),
-    dict(bg=(255,248,214), box=(255,193,7),   rib=(230,60,120), acc=(76,201,240),  pat="rainbow", rs="cross", seed=606),
+    dict(bg=(255,240,244), box=(255,99,132),  rib=(255,193,7),  acc=(255,255,255), pat="dots",    rs="cross", seed=101, bgs="confetti", sc=1.0, rot=0, off=(0,0)),
+    dict(bg=(232,246,255), box=(60,140,230),  rib=(255,255,255),acc=(255,193,7),   pat="stripes", rs="v",     seed=202, bgs="confetti", sc=1.0, rot=0, off=(0,0)),
+    dict(bg=(255,243,224), box=(230,60,60),   rib=(255,214,64), acc=(255,255,255), pat="checks",  rs="diag",  seed=303, bgs="bands", sc=0.82, rot=-11, off=(0.05,0.02)),
+    dict(bg=(236,250,236), box=(60,170,100),  rib=(255,120,160),acc=(255,255,255), pat="zigzag",  rs="h",     seed=404, bgs="confetti", sc=1.0, rot=0, off=(0,0)),
+    dict(bg=(244,238,255), box=(150,100,230), rib=(255,214,64), acc=(255,255,255), pat="stars",   rs="cross", seed=505, bgs="tiles", sc=0.88, rot=9, off=(-0.05,0.0)),
+    dict(bg=(255,248,214), box=(255,193,7),   rib=(230,60,120), acc=(76,201,240),  pat="rainbow", rs="cross", seed=606, bgs="confetti", sc=1.0, rot=0, off=(0,0)),
 ]
 
 def confetti(d, rng, n):
@@ -66,11 +66,7 @@ def pattern(d, v, bx0, by0, bx1, by1):
         cols = [(230,60,60),(255,138,76),(129,199,132),(76,201,240),(171,130,255)]
         for i, gx in enumerate(range(int(bx0)+14, int(bx1)-30, 40)): d.rectangle((gx, by0+8, gx+26, by1-8), fill=cols[i % 5])
 
-def make(i, v):
-    rng = random.Random(v["seed"])
-    img = Image.new("RGB", (S, S), v["bg"])
-    d = ImageDraw.Draw(img)
-    confetti(d, rng, 250 + 12*i)
+def draw_box(d, v):
     bx0, by0, bx1, by1 = S*0.22, S*0.42, S*0.78, S*0.86
     d.rectangle((bx0, by0, bx1, by1), fill=v["box"], outline=INK, width=14)
     pattern(d, v, bx0, by0, bx1, by1)
@@ -85,6 +81,48 @@ def make(i, v):
         cx = S*0.5 + sgn*S*0.11
         d.ellipse((cx-S*0.1, S*0.17, cx+S*0.1, S*0.33), fill=rib, outline=INK, width=12)
     d.ellipse((S*0.45, S*0.24, S*0.55, S*0.34), fill=v["box"], outline=INK, width=12)
+
+def background(img, d, rng, v, i):
+    bgs = v["bgs"]
+    if bgs == "confetti":
+        confetti(d, rng, 250 + 12*i)
+    elif bgs == "bands":  # wide diagonal bands + a little confetti
+        cols = [(255,224,178),(255,245,230),(255,205,210),(255,250,240)]
+        w = S // 6
+        for k in range(-8, 14):
+            x = k * w
+            d.polygon([(x, 0), (x+w, 0), (x+w-S*0.5, S), (x-S*0.5, S)], fill=cols[k % 4])
+        confetti(d, rng, 70)
+    elif bgs == "tiles":  # chess-like tiles with random shapes
+        n = 8
+        t = S // n
+        for gx in range(n):
+            for gy in range(n):
+                base = (226,214,250) if (gx+gy) % 2 else (246,240,255)
+                d.rectangle((gx*t, gy*t, gx*t+t, gy*t+t), fill=base)
+                cx, cy, r = gx*t+t//2+rng.randint(-14,14), gy*t+t//2+rng.randint(-14,14), rng.randint(10, 30)
+                col = rng.choice(PAL_ALL[:6])
+                k = rng.random()
+                if k < 0.4: d.ellipse((cx-r, cy-r, cx+r, cy+r), outline=col, width=7)
+                elif k < 0.7: star(d, cx, cy, r, col)
+                else: d.polygon([(cx, cy-r), (cx+r, cy+r), (cx-r, cy+r)], fill=col)
+
+def make(i, v):
+    rng = random.Random(v["seed"])
+    img = Image.new("RGB", (S, S), v["bg"])
+    d = ImageDraw.Draw(img)
+    background(img, d, rng, v, i)
+    if v["sc"] == 1.0 and v["rot"] == 0 and v["off"] == (0, 0):
+        draw_box(d, v)
+    else:
+        layer = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        draw_box(ImageDraw.Draw(layer), v)
+        layer = layer.rotate(v["rot"], resample=Image.BICUBIC, center=(S/2, S*0.6))
+        sz = int(S * v["sc"])
+        layer = layer.resize((sz, sz), Image.LANCZOS)
+        ox = int((S - sz)/2 + v["off"][0]*S)
+        oy = int((S - sz)/2 + S*0.04 + v["off"][1]*S)
+        img.paste(layer, (ox, oy), layer)
     d.rectangle((0, 0, S-1, S-1), outline=INK, width=S//40)
     try: font = ImageFont.load_default(size=S//16)
     except TypeError: font = ImageFont.load_default()

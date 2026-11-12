@@ -650,7 +650,7 @@ def build_anims(b, c):
         other = "ArmL" if sx > 0 else "ArmR"
         base = aR if sx > 0 else aL
         up = 1.9 * sx
-        b.anim(nm, [dur(T),
+        b.anim(nm, [lin("Root", "translation", [0, 0.4, 2.0, T], [(0, 0, 0), (0.06 * sx, 0, 0), (0.06 * sx, 0, 0), (0, 0, 0)]),
                     lin("Upper", "rotation", [0, 0.4, 2.0, T], [qy(0), qy(0.5 * sx), qy(0.5 * sx), qy(0)]),
                     lin("Head", "rotation", [0, 0.4, 2.0, T], [qy(0), qy(0.2 * sx), qy(0.2 * sx), qy(0)]),
                     lin(arm, "rotation", [0, 0.4, 1.0, 1.15, 1.4, 2.0, T],
@@ -669,7 +669,7 @@ def build_anims(b, c):
         base = aR if sx > 0 else aL
         tap = [0, 0.5, 0.8, 1.1, 1.4, 1.7, 2.0, T]
         angs = [base, 1.45 * sx, 1.7 * sx, 1.45 * sx, 1.7 * sx, 1.45 * sx, 1.45 * sx, base]
-        b.anim(nm, [lin("Root", "translation", [0, 0.5, 2.0, T], [(0, 0, 0), (0.1 * sx, 0, 0), (0.1 * sx, 0, 0), (0, 0, 0)]),
+        b.anim(nm, [lin("Root", "translation", [0, 0.5, 2.0, T], [(0, 0, 0), (0.15 * sx, 0, 0), (0.15 * sx, 0, 0), (0, 0, 0)]),
                     lin("Upper", "rotation", [0, 0.5, 2.0, T], [qy(0), qy(0.4 * sx), qy(0.4 * sx), qy(0)]),
                     lin(arm, "rotation", tap, [qz(a) for a in angs]),
                     lin(fore, "rotation", [0, 0.5, 2.0, T], [qz(0), qz(0.15 * sx), qz(0.15 * sx), qz(0)]),

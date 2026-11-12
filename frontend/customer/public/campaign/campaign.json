@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "campaignId": "poc-campaign",
-  "version": "poc-0.4.0",
+  "version": "poc-0.5.0",
   "name": "門市互動 AR",
   "description": "拿出任一個禮物盒圖案，按下開始後把相機對準它，門市夥伴就會跳出來！第 6 個禮物是大集合。點一下小人看看會發生什麼事。",
   "trackingAsset": {
-    "url": "campaign/gift-targets.mind?v=poc-0.4.0",
+    "url": "campaign/gift-targets.mind?v=poc-0.5.0",
     "engine": "mindar",
     "targetOrder": [
       "TARGET-GIFT-1",
@@ -46,27 +46,27 @@
     {
       "id": "CHAR-CHIBI-A",
       "name": "門市夥伴 A（Q版・原創）",
-      "modelUrl": "campaign/char-a.glb?v=poc-0.4.0"
+      "modelUrl": "campaign/char-a.glb?v=poc-0.5.0"
     },
     {
       "id": "CHAR-CHIBI-B",
       "name": "門市夥伴 B（Q版・原創）",
-      "modelUrl": "campaign/char-b.glb?v=poc-0.4.0"
+      "modelUrl": "campaign/char-b.glb?v=poc-0.5.0"
     },
     {
       "id": "CHAR-CHIBI-C",
       "name": "門市夥伴 C（Q版・原創）",
-      "modelUrl": "campaign/char-c.glb?v=poc-0.4.0"
+      "modelUrl": "campaign/char-c.glb?v=poc-0.5.0"
     },
     {
       "id": "CHAR-CHIBI-D",
       "name": "門市夥伴 D（Q版・原創）",
-      "modelUrl": "campaign/char-d.glb?v=poc-0.4.0"
+      "modelUrl": "campaign/char-d.glb?v=poc-0.5.0"
     },
     {
       "id": "CHAR-CHIBI-E",
       "name": "門市夥伴 E（Q版・原創）",
-      "modelUrl": "campaign/char-e.glb?v=poc-0.4.0"
+      "modelUrl": "campaign/char-e.glb?v=poc-0.5.0"
     }
   ],
   "experiences": [
@@ -198,9 +198,9 @@
     {
       "targetId": "TARGET-GIFT-6",
       "characterId": "CHAR-CHIBI-A",
-      "scale": 0.4,
+      "scale": 0.32,
       "position": {
-        "x": -0.4,
+        "x": -0.44,
         "y": -0.3,
         "z": 0.02
       },
@@ -224,9 +224,9 @@
     {
       "targetId": "TARGET-GIFT-6",
       "characterId": "CHAR-CHIBI-B",
-      "scale": 0.4,
+      "scale": 0.32,
       "position": {
-        "x": -0.2,
+        "x": -0.22,
         "y": -0.3,
         "z": 0.02
       },
@@ -250,7 +250,7 @@
     {
       "targetId": "TARGET-GIFT-6",
       "characterId": "CHAR-CHIBI-C",
-      "scale": 0.4,
+      "scale": 0.32,
       "position": {
         "x": 0,
         "y": -0.3,
@@ -276,9 +276,9 @@
     {
       "targetId": "TARGET-GIFT-6",
       "characterId": "CHAR-CHIBI-D",
-      "scale": 0.4,
+      "scale": 0.32,
       "position": {
-        "x": 0.2,
+        "x": 0.22,
         "y": -0.3,
         "z": 0.02
       },
@@ -302,9 +302,9 @@
     {
       "targetId": "TARGET-GIFT-6",
       "characterId": "CHAR-CHIBI-E",
-      "scale": 0.4,
+      "scale": 0.32,
       "position": {
-        "x": 0.4,
+        "x": 0.44,
         "y": -0.3,
         "z": 0.02
       },
