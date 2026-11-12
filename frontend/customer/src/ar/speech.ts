@@ -1,6 +1,6 @@
 /**
- * Reads speech-bubble lines aloud with the phone's built-in text-to-speech (Web Speech API).
- * Free, works offline, no audio files. Voice quality depends on the phone (iPhone: "Mei-Jia" zh-TW).
+ * Reads speech-bubble lines aloud: pre-recorded neural voices (tools/make_voices.py) first,
+ * the phone's built-in text-to-speech (Web Speech API) as a fallback. Voice quality depends on the phone (iPhone: "Mei-Jia" zh-TW).
  */
 export interface VoiceDef {
   pitch?: number; // 0.1 – 2, default 1
@@ -17,8 +17,23 @@ function speakable(text: string): string {
     .trim();
 }
 
+const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=';
+
 export class Speaker {
   enabled = true;
+  /** Pre-recorded lines: characterId -> line -> mp3 url. Lines without a recording fall back to the phone's voice. */
+  private clips: Record<string, Record<string, string>> = {};
+  private audio: HTMLAudioElement | null = typeof Audio !== 'undefined' ? new Audio() : null;
+  private playing = false;
+
+  async loadClips(manifestUrl: string): Promise<void> {
+    try {
+      const r = await fetch(manifestUrl);
+      if (r.ok) this.clips = await r.json();
+    } catch {
+      /* recordings are optional */
+    }
+  }
   private voice: SpeechSynthesisVoice | null = null;
 
   get supported(): boolean {
@@ -37,6 +52,12 @@ export class Speaker {
 
   /** iOS only lets speech start after a tap: call this inside the Start-button tap. */
   unlock(): void {
+    if (this.audio) {
+      this.audio.onended = () => (this.playing = false);
+      this.audio.onerror = () => (this.playing = false);
+      this.audio.src = SILENCE;
+      this.audio.play().catch(() => undefined);
+    }
     if (!this.supported) return;
     try {
       const u = new SpeechSynthesisUtterance(' ');
@@ -48,9 +69,19 @@ export class Speaker {
   }
 
   /** @param force true when the customer tapped the character (always speak, interrupting older speech). */
-  speak(text: string, voice: VoiceDef = {}, force = false): void {
-    if (!this.enabled || !this.supported) return;
-    if (!force && (speechSynthesis.speaking || Math.random() > 0.5)) return; // keep self-play from chattering
+  speak(text: string, voice: VoiceDef = {}, force = false, characterId = ''): void {
+    if (!this.enabled) return;
+    const busy = this.playing || (this.supported && speechSynthesis.speaking);
+    if (!force && (busy || Math.random() > 0.5)) return; // keep self-play from chattering
+    const url = this.clips[characterId]?.[text];
+    if (url && this.audio) {
+      if (this.supported) speechSynthesis.cancel();
+      this.audio.src = url;
+      this.playing = true;
+      this.audio.play().catch(() => (this.playing = false));
+      return;
+    }
+    if (!this.supported) return;
     const t = speakable(text);
     if (!t) return;
     try {
@@ -67,6 +98,8 @@ export class Speaker {
   }
 
   cancel(): void {
+    if (this.audio && this.playing) this.audio.pause();
+    this.playing = false;
     if (this.supported) speechSynthesis.cancel();
   }
 

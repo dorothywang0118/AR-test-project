@@ -25,6 +25,8 @@ with sync_playwright() as pw:
     errs = []
     page.add_init_script("""
       window.__spoken = [];
+      const _play = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function () { if (this.tagName === 'AUDIO') window.__spoken.push(['audio', this.src.slice(-40)]); return _play.call(this); };
       const fake = { speaking: false, getVoices: () => [], addEventListener: () => {}, cancel: () => {}, speak: (u) => window.__spoken.push([u.text, u.pitch, u.rate, u.lang]) };
       Object.defineProperty(window, 'speechSynthesis', { value: fake });
       window.SpeechSynthesisUtterance = function (t) { this.text = t; };

@@ -31,7 +31,7 @@ CHARS = {
               pants="#4a4f3d", shoes="#2b2b30", flopdir=-1),
     "d": dict(h=166, bw=0.90, hair="#6b4630", style="wavy", glasses=None, tee="#b8bcc4", jacket="#34343e",
               pants="#26262c", shoes="#222222", bag="#5f7447", wide=True, flopdir=1),
-    "e": dict(h=150, bw=1.00, hair="#1f1c22", style="braid", glasses=None, tee="#ffffff", jacket="#ece1c3",
+    "e": dict(h=150, bw=1.00, hair="#1f1c22", style="pony", glasses=None, tee="#ffffff", jacket="#ece1c3",
               collar="#b98a4e", pants="#4f78b5", shoes="#9bb6cf", flopdir=1),
 }
 
@@ -327,7 +327,7 @@ def seg(b, name, parent, p1, p2, th, color, flat_z=None):
 def build_hair(b, c):
     h, st = c["hair"], c["style"]
     hy = HEAD_LOCAL_Y
-    t1 = {"short": 1.12, "long8": 1.12, "jp": 1.15, "wavy": 1.1, "bun": 1.15, "braid": 1.12}[st]
+    t1 = {"short": 1.12, "long8": 1.12, "jp": 1.15, "wavy": 1.1, "bun": 1.15, "pony": 1.12}[st]
     b.part("HairDome", "Head", "ell", (0.292, 0.266, 0.262), h, t=[0, hy + 0.008, -0.012], nt=10, np_=18, t0=0, t1=t1)
     if st in ("long8", "wavy"):
         # long back hair
@@ -349,15 +349,23 @@ def build_hair(b, c):
         for i, x in enumerate((-0.2, -0.1, 0.0, 0.1, 0.2)):
             b.part(f"Tooth{i}", "Head", "box", (0.07, 0.07, 0.04), h, t=[x, hy + 0.135 - (0.015 if i % 2 else 0), 0.21],
                    r=qz(math.pi / 4))
-    if st == "braid":  # bob with straight bangs + one side braid (reference photo from the owner)
+    if st == "pony":  # straight bangs + short side locks + ONE high black ponytail (owner's request)
         b.part("Fringe", "Head", "box", (0.47, 0.07, 0.06), h, t=[0, hy + 0.125, 0.205])
         for sx in (-1, 1):
-            b.part(f"BobSide{sx}", "Head", "ell", (0.05, 0.12, 0.12), h, t=[sx * 0.262, hy - 0.03, -0.01], nt=8, np_=10)
-            b.part(f"Fall{sx}", "Head", "ell", (0.032, 0.06, 0.05), h, t=[sx * 0.255, hy + 0.09, 0.15], nt=6, np_=8)
-        b.part("BobBack", "Head", "ell", (0.27, 0.17, 0.12), h, t=[0, hy - 0.03, -0.14], nt=8, np_=14)
-        for i, (x, y, r) in enumerate([(-0.27, -0.13, 0.05), (-0.275, -0.2, 0.046), (-0.27, -0.27, 0.043), (-0.275, -0.34, 0.04)]):
-            b.part(f"Braid{i}", "Head", "ell", (r, r * 1.15, r), h, t=[x, hy + y, 0.04], nt=6, np_=8)
-        b.part("BraidTie", "Head", "ell", (0.034, 0.03, 0.034), "#e85d75", t=[-0.272, hy - 0.385, 0.04], nt=6, np_=8)
+            b.part(f"Lock{sx}", "Head", "ell", (0.034, 0.09, 0.05), h, t=[sx * 0.262, hy + 0.0, 0.07], nt=6, np_=8)
+        b.part("HairBackCap", "Head", "ell", (0.27, 0.2, 0.12), h, t=[0, hy + 0.04, -0.13], nt=8, np_=14)
+        # ponytail: tied high at the back, arcs out to the viewer's right and hangs down past the cheek
+        ctrl = [(0.10, 0.20, -0.215), (0.19, 0.225, -0.24), (0.265, 0.15, -0.225), (0.305, 0.03, -0.18),
+                (0.31, -0.10, -0.14), (0.30, -0.22, -0.10), (0.29, -0.32, -0.075)]
+        N = 16
+        for i in range(N):
+            u = i / (N - 1) * (len(ctrl) - 1)
+            k = min(int(u), len(ctrl) - 2)
+            f = u - k
+            x, y, z = (ctrl[k][j] * (1 - f) + ctrl[k + 1][j] * f for j in range(3))
+            r = 0.05 + 0.032 * math.sin(math.pi * min(1.0, i / (N - 1) * 1.15)) - 0.012 * (i / (N - 1))
+            b.part(f"Pony{i}", "Head", "ell", (r, r * 1.7, r), h, t=[x, hy + y, z], r=qz(0.0), nt=7, np_=10)
+        b.part("PonyTie", "Head", "ell", (0.05, 0.034, 0.05), "#e85d75", t=[0.125, hy + 0.205, -0.225], nt=6, np_=8)
     if st == "bun":
         b.part("Bun", "Head", "ell", (0.075, 0.075, 0.075), h, t=[0, hy + 0.27, -0.03])
 
@@ -722,6 +730,138 @@ def build_anims(b, c):
                    lin("H1", "translation", [0.6, 2.3], [(-0.2, 0.98, 0.1), (-0.26, 1.15, 0.1)]),
                    lin("H2", "translation", [0.9, 2.3], [(0.22, 0.95, 0.1), (0.28, 1.12, 0.1)]),
                    ] + expr(T, ["EyesHappy"], ["EyesOpen"]))
+
+
+    # ================= 10 extra clips (store-clerk life) =================
+    def wob(times, vals):  # helper: list of qz rotations
+        return [qz(v) for v in vals]
+
+    # ---------------- Wave (greeting)
+    T = 3.0
+    wk = [0, 0.4, 0.75, 1.05, 1.35, 1.65, 1.95, 2.25, 2.6, T]
+    wf = [0, 0.3, 0.9, 0.0, 0.9, 0.0, 0.9, 0.0, 0.3, 0]
+    b.anim("Wave", [dur(T),
+                    lin("ArmR", "rotation", [0, 0.4, 2.6, T], [qz(aR), qz(2.15), qz(2.15), qz(aR)]),
+                    lin("ForeR", "rotation", wk, [qz(v) for v in wf]),
+                    lin("Head", "rotation", [0, 0.4, 2.6, T], [qz(0), qz(-0.1), qz(-0.1), qz(0)]),
+                    lin("Upper", "translation", [0, 0.4, 1.2, 2.0, T], [(0, 0, 0), (0, 0.01, 0), (0, 0, 0), (0, 0.01, 0), (0, 0, 0)]),
+                    appear("S1", [0, 0.9, 2.2], [False, True, False]),
+                    lin("S1", "translation", [0.9, 2.2], [(0.36, 1.0, 0.1), (0.4, 1.1, 0.1)]),
+                    ] + expr(T, ["EyesHappy", "MouthOpen"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- Beckon (calling someone over)
+    T = 3.0
+    bk = [0, 0.4, 0.7, 1.0, 1.3, 1.6, 1.9, 2.2, 2.6, T]
+    bf = [0, 0.2, 1.7, 0.2, 1.7, 0.2, 1.7, 0.2, 0.2, 0]
+    b.anim("Beckon", [dur(T),
+                      lin("ArmR", "rotation", [0, 0.4, 2.6, T], [qz(aR), qz(1.75), qz(1.75), qz(aR)]),
+                      lin("ForeR", "rotation", bk, [qz(v) for v in bf]),
+                      lin("Upper", "rotation", [0, 0.4, 2.6, T], [qy(0), qy(-0.3), qy(-0.3), qy(0)]),
+                      lin("Head", "rotation", [0, 0.4, 2.6, T], [qz(0), qmul(qz(0.12), qx(0.06)), qmul(qz(0.12), qx(0.06)), qz(0)]),
+                      ] + expr(T, ["MouthOpen"], ["MouthSmile"]))
+
+    # ---------------- Bow (polite bow)
+    T = 3.2
+    b.anim("Bow", [dur(T),
+                   lin("Upper", "rotation", [0, 0.7, 1.9, T], [qx(0), qx(0.42), qx(0.42), qx(0)]),
+                   lin("Head", "rotation", [0, 0.7, 1.9, T], [qx(0), qx(0.12), qx(0.12), qx(0)]),
+                   lin("ArmL", "rotation", [0, 0.6, 2.0, T], [qz(aL), qz(-0.02), qz(-0.02), qz(aL)]),
+                   lin("ArmR", "rotation", [0, 0.6, 2.0, T], [qz(aR), qz(0.02), qz(0.02), qz(aR)]),
+                   appear("S1", [0, 2.0, 2.9], [False, True, False]),
+                   lin("S1", "translation", [2.0, 2.9], [(0.3, 0.95, 0.1), (0.34, 1.05, 0.1)]),
+                   ] + expr(T, ["EyesHappy"], ["EyesOpen"]))
+
+    # ---------------- Shrug (palms up, helpless)
+    T = 3.0
+    sk = [0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.5, T]
+    b.anim("Shrug", [dur(T),
+                     lin("ArmL", "rotation", [0, 0.4, 2.5, T], [qz(aL), qz(-0.8), qz(-0.8), qz(aL)]),
+                     lin("ForeL", "rotation", [0, 0.4, 2.5, T], [qz(0), qz(-1.1), qz(-1.1), qz(0)]),
+                     lin("ArmR", "rotation", [0, 0.4, 2.5, T], [qz(aR), qz(0.8), qz(0.8), qz(aR)]),
+                     lin("ForeR", "rotation", [0, 0.4, 2.5, T], [qz(0), qz(1.1), qz(1.1), qz(0)]),
+                     lin("Upper", "translation", sk, [(0, 0, 0), (0, 0.025, 0), (0, 0.0, 0), (0, 0.025, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)]),
+                     lin("Head", "rotation", [0, 0.5, 1.5, 2.5, T], [qz(0), qz(0.16), qz(-0.16), qz(0.1), qz(0)]),
+                     appear("Sweat", [0, 0.6, 2.6], [False, True, False]),
+                     ] + expr(T, ["MouthFlat"], ["MouthSmile"]))
+
+    # ---------------- Panic (hands on cheeks, oh no)
+    T = 3.0
+    pk = [0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4, 1.55, 1.7, 1.85, 2.0, 2.15, 2.3]
+    pv = [0.07, -0.07] * 6 + [0.07]
+    b.anim("Panic", [dur(T),
+                     lin("ArmL", "rotation", [0] + pk + [T], [qz(aL)] + [qz(-2.1 - 3 * v) for v in pv] + [qz(aL)]),
+                     lin("ArmR", "rotation", [0] + pk + [T], [qz(aR)] + [qz(2.1 - 3 * v) for v in pv] + [qz(aR)]),
+                     lin("ForeL", "rotation", [0, 0.5, 2.3, T], [qz(0), qz(-0.25), qz(-0.25), qz(0)]),
+                     lin("ForeR", "rotation", [0, 0.5, 2.3, T], [qz(0), qz(0.25), qz(0.25), qz(0)]),
+                     lin("Head", "rotation", [0] + pk + [T], [qz(0)] + [qz(v) for v in pv] + [qz(0)]),
+                     lin("Upper", "translation", [0, 0.4, 2.6, T], [(0, 0, 0), (0, -0.015, 0), (0, -0.015, 0), (0, 0, 0)]),
+                     appear("Sweat", [0, 0.5, 2.7], [False, True, False]),
+                     ] + expr(T, ["EyesCry", "MouthWail"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- BackPain (hand on lower back, "my waist...")
+    T = 3.6
+    b.anim("BackPain", [dur(T),
+                        lin("ArmL", "rotation", [0, 0.5, 3.1, T], [qz(aL), qz(-0.9), qz(-0.9), qz(aL)]),
+                        lin("ForeL", "rotation", [0, 0.5, 3.1, T], [qz(0), qz(1.7), qz(1.7), qz(0)]),
+                        lin("ArmR", "rotation", [0, 0.5, 3.1, T], [qz(aR), qz(0.9), qz(0.9), qz(aR)]),
+                        lin("ForeR", "rotation", [0, 0.5, 3.1, T], [qz(0), qz(-1.7), qz(-1.7), qz(0)]),
+                        lin("Upper", "rotation", [0, 0.6, 1.4, 2.2, 3.1, T],
+                            [qz(0), qmul(qz(0.1), qx(-0.2)), qmul(qz(-0.1), qx(-0.24)), qmul(qz(0.1), qx(-0.2)), qmul(qz(0.0), qx(-0.2)), qz(0)]),
+                        lin("Head", "rotation", [0, 0.6, 3.1, T], [qz(0), qmul(qz(0.1), qx(-0.12)), qmul(qz(0.1), qx(-0.12)), qz(0)]),
+                        appear("Sweat", [0, 0.7, 3.2], [False, True, False]),
+                        ] + expr(T, ["EyesCry", "MouthFrown"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- Yawn (big stretch)
+    T = 3.6
+    b.anim("Yawn", [dur(T),
+                    lin("ArmL", "rotation", [0, 0.8, 2.4, T], [qz(aL), qz(-2.4), qz(-2.4), qz(aL)]),
+                    lin("ArmR", "rotation", [0, 0.8, 2.4, T], [qz(aR), qz(2.4), qz(2.4), qz(aR)]),
+                    lin("ForeL", "rotation", [0, 0.8, 2.4, T], [qz(0), qz(-0.2), qz(-0.2), qz(0)]),
+                    lin("ForeR", "rotation", [0, 0.8, 2.4, T], [qz(0), qz(0.2), qz(0.2), qz(0)]),
+                    lin("Upper", "rotation", [0, 0.8, 2.4, T], [qx(0), qx(-0.2), qx(-0.2), qx(0)]),
+                    lin("Head", "rotation", [0, 0.8, 2.4, T], [qx(0), qx(-0.3), qx(-0.3), qx(0)]),
+                    ] + expr(T, ["EyesCry", "MouthWail"], ["EyesOpen", "MouthSmile"], t0=0.5, t1=2.7))
+
+    # ---------------- Jump (happy hop, fists up)
+    T = 3.0
+    jk = [0, 0.3, 0.55, 0.8, 1.1, 1.35, 1.6, 1.9, T]
+    b.anim("Jump", [dur(T),
+                    lin("Root", "translation", jk, [(0, 0, 0), (0, 0, 0), (0, 0.2, 0), (0, 0, 0), (0, 0, 0), (0, 0.2, 0), (0, 0, 0), (0, 0, 0), (0, 0, 0)]),
+                    lin("Upper", "translation", jk, [(0, 0, 0), (0, -0.04, 0), (0, 0, 0), (0, -0.04, 0), (0, -0.04, 0), (0, 0, 0), (0, -0.04, 0), (0, 0, 0), (0, 0, 0)]),
+                    lin("LegL", "scale", jk, [ONE, (1, 0.78, 1), ONE, (1, 0.78, 1), (1, 0.78, 1), ONE, (1, 0.78, 1), ONE, ONE]),
+                    lin("LegR", "scale", jk, [ONE, (1, 0.78, 1), ONE, (1, 0.78, 1), (1, 0.78, 1), ONE, (1, 0.78, 1), ONE, ONE]),
+                    lin("ArmL", "rotation", jk, [qz(aL), qz(-0.4), qz(-2.5), qz(-0.4), qz(-0.4), qz(-2.5), qz(-0.4), qz(-1.0), qz(aL)]),
+                    lin("ArmR", "rotation", jk, [qz(aR), qz(0.4), qz(2.5), qz(0.4), qz(0.4), qz(2.5), qz(0.4), qz(1.0), qz(aR)]),
+                    appear("S1", [0, 0.55, 1.3, 1.35, 2.0], [False, True, False, True, False]),
+                    appear("S2", [0, 0.6, 1.3, 1.4, 2.0], [False, True, False, True, False]),
+                    appear("S3", [0, 0.5, 1.2, 1.35, 2.1], [False, True, False, True, False]),
+                    lin("S1", "translation", [0.55, 2.0], [(-0.32, 1.0, 0.1), (-0.36, 1.15, 0.1)]),
+                    lin("S2", "translation", [0.6, 2.0], [(0.32, 1.0, 0.1), (0.36, 1.15, 0.1)]),
+                    lin("S3", "translation", [0.5, 2.1], [(0.0, 1.15, 0.1), (0.0, 1.25, 0.1)]),
+                    ] + expr(T, ["EyesHappy", "MouthOpen"], ["EyesOpen", "MouthSmile"]))
+
+    # ---------------- Point (pointing the way)
+    T = 3.0
+    b.anim("Point", [dur(T),
+                     lin("ArmR", "rotation", [0, 0.4, 2.5, T], [qz(aR), qz(1.62), qz(1.62), qz(aR)]),
+                     lin("ForeR", "rotation", [0, 0.4, 2.5, T], [qz(0), qz(0.0), qz(0.0), qz(0)]),
+                     lin("ArmL", "rotation", [0, 0.4, 2.5, T], [qz(aL), qz(aL + 0.25), qz(aL + 0.25), qz(aL)]),
+                     lin("Upper", "rotation", [0, 0.4, 2.5, T], [qy(0), qy(0.15), qy(0.15), qy(0)]),
+                     lin("Head", "rotation", [0, 0.4, 2.5, T], [qy(0), qy(0.1), qy(0.1), qy(0)]),
+                     lin("Upper", "translation", [0, 0.8, 1.2, 1.6, 2.0, T], [(0, 0, 0), (0, 0.015, 0), (0, 0, 0), (0, 0.015, 0), (0, 0, 0), (0, 0, 0)]),
+                     appear("S1", [0, 0.6, 2.2], [False, True, False]),
+                     lin("S1", "translation", [0.6, 2.2], [(0.62, 0.55, 0.1), (0.66, 0.6, 0.1)]),
+                     ] + expr(T, ["MouthOpen"], ["MouthSmile"]))
+
+    # ---------------- Sigh (shoulders drop, tired)
+    T = 3.4
+    b.anim("Sigh", [dur(T),
+                    lin("Upper", "translation", [0, 0.6, 1.3, 2.0, 2.8, T], [(0, 0, 0), (0, 0.015, 0), (0, -0.035, 0), (0, -0.035, 0), (0, -0.03, 0), (0, 0, 0)]),
+                    lin("Head", "rotation", [0, 1.2, 2.8, T], [qz(0), qmul(qz(0.08), qx(0.3)), qmul(qz(0.08), qx(0.3)), qz(0)]),
+                    lin("ArmL", "rotation", [0, 1.2, 2.8, T], [qz(aL), qz(aL + 0.12), qz(aL + 0.12), qz(aL)]),
+                    lin("ArmR", "rotation", [0, 1.2, 2.8, T], [qz(aR), qz(aR - 0.12), qz(aR - 0.12), qz(aR)]),
+                    appear("Sweat", [0, 1.3, 3.1], [False, True, False]),
+                    ] + expr(T, ["MouthFrown"], ["MouthSmile"]))
 
 
 if __name__ == "__main__":

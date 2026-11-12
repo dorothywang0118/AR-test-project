@@ -86,12 +86,13 @@ export class ArExperience {
   }
 
   private async start(): Promise<void> {
+    this.speaker.unlock(); // iOS: sound may only start from a tap, so do this before any await
+    void this.speaker.loadClips(`campaign/voice/manifest.json?v=${Date.now()}`);
     if (!this.manifest) {
       this.manifest = await loadManifest().catch(() => null);
       if (!this.manifest) return this.showError(new ARError('TARGET_LOAD_FAILED', 'manifest'));
     }
     const m = this.manifest;
-    this.speaker.unlock(); // iOS: speech may only start from a tap, and this runs inside the Start tap
     await this.teardown(); // clean slate on retry
     this.show('loading', '準備 AR 引擎…');
     this.startedAt = performance.now();
@@ -133,7 +134,7 @@ export class ArExperience {
         const def = m.characters.find((c) => c.id === exp.characterId);
         if (!def) throw new Error(`character ${exp.characterId} missing in manifest`);
         const ctrl = new CharacterController(exp, def.phrases);
-        ctrl.onSay = (text, _id, force) => this.speaker.speak(text, def.voice, force);
+        ctrl.onSay = (text, _id, force) => this.speaker.speak(text, def.voice, force, def.id);
         await ctrl.load(resolveUrl(def.modelUrl), this.stages.get(exp.targetId)!.group);
         this.characters.push(ctrl);
       }

@@ -8,7 +8,7 @@ from playwright.sync_api import sync_playwright
 glb_dir, out = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
 THREE = os.path.join(HERE, "..", "frontend", "customer", "node_modules", "three")
-CLIPS = {"Cheer": 1.0, "FiveR": 1.3, "FiveL": 1.3, "PatShoulderR": 1.3, "PatShoulderL": 1.3, "Shy": 1.5, "Idle": 0.5, "Pat": 1.6, "HighFive": 1.3, "Cry": 1.5, "Sway": 0.35, "Angry": 1.0, "Think": 1.6, "Flop": 2.0}
+CLIPS = {"Cheer": 1.0, "FiveR": 1.3, "FiveL": 1.3, "PatShoulderR": 1.3, "PatShoulderL": 1.3, "Shy": 1.5, "Idle": 0.5, "Pat": 1.6, "HighFive": 1.3, "Cry": 1.5, "Sway": 0.35, "Angry": 1.0, "Think": 1.6, "Flop": 2.0, "Wave": 1.05, "Beckon": 1.0, "Bow": 1.3, "Shrug": 0.9, "Panic": 1.25, "BackPain": 1.4, "Yawn": 1.6, "Jump": 0.55, "Point": 1.2, "Sigh": 2.0}
 if len(sys.argv) > 3:
     CLIPS = {k: v for k, v in CLIPS.items() if k in sys.argv[3:]}
 work = tempfile.mkdtemp(prefix="glbprev-")
