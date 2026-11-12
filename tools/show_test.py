@@ -25,13 +25,19 @@ with sync_playwright() as pw:
     errs = []
     page.on("pageerror", lambda e: errs.append(str(e)))
     page.on("console", lambda m: errs.append(m.text) if m.type == "error" and "404" not in m.text else None)
-    page.goto(f"http://127.0.0.1:{srv.server_address[1]}/index.html")
+    page.goto(f"http://127.0.0.1:{srv.server_address[1]}/index.html" + ("?debug=1" if os.environ.get("DEBUG") else ""))
     page.click("#btn-start")
     page.wait_for_function("() => !document.getElementById('hud').hidden", timeout=120000)
     page.wait_for_function("() => document.getElementById('hint').classList.contains('found')", timeout=90000)
     print("found")
+    if os.environ.get("TAP"):
+        for dx in (0, -30, 30):
+            for dy in (0, -60, 60, -110, 40):
+                page.mouse.click(195 + dx, 330 + dy)
     for i in range(secs // 2):
         page.screenshot(path=f"{prefix}-{i:02d}.png")
         time.sleep(2)
+    if os.environ.get("DEBUG"):
+        print(page.inner_text("#debug"))
     print("errors:", errs)
     b.close()

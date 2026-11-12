@@ -30,6 +30,8 @@ export interface CharacterDef {
   name: string;
   /** GLB / glTF model URL (versioned file name or ?v=hash to defeat caches). */
   modelUrl: string;
+  /** Catchphrases (口頭禪) shown in a speech bubble. Key = animation clip name; "*" = used for any clip without its own list. */
+  phrases?: Record<string, string[]>;
 }
 
 export interface ExperienceDef {
@@ -68,4 +70,6 @@ export interface CampaignManifest {
   characters: CharacterDef[];
   experiences: ExperienceDef[];
   shows?: ShowDef[];
+  /** Opaque panel laid over the printed scan image while characters are shown (hides the busy picture). */
+  backdrop?: { color: string };
 }

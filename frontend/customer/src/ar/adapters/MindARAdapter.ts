@@ -1,4 +1,4 @@
-import { Clock, type Object3D } from 'three';
+import { Clock, Vector2, type Object3D } from 'three';
 import { MindARThree, type MindARAnchor } from 'mind-ar/dist/mindar-image-three.prod.js';
 import { ARError, type AREngineAdapter, type ARRenderContext } from './AREngineAdapter';
 
@@ -44,6 +44,9 @@ export class MindARAdapter implements AREngineAdapter {
       // Tolerances: how many frames to keep the target after it is briefly lost / before showing it.
       missTolerance: 5,
       warmupTolerance: 5,
+      // One-euro filter: lower cutoff = steadier picture when the phone is held still (less shaking).
+      filterMinCF: 0.0002,
+      filterBeta: 500,
     });
     targetIds.forEach((id, index) => {
       const anchor = this.mindar!.addAnchor(index);
@@ -68,9 +71,17 @@ export class MindARAdapter implements AREngineAdapter {
     }
     this.running = true;
     this.clock.start();
-    mindar.renderer.setAnimationLoop(() => {
+    // Heat: cap the render resolution and draw at most ~30 frames per second.
+    const size = mindar.renderer.getSize(new Vector2());
+    mindar.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    mindar.renderer.setSize(size.x, size.y, false);
+    let lastDraw = 0;
+    mindar.renderer.setAnimationLoop((now: number) => {
       this.frameCb(this.clock.getDelta());
-      mindar.renderer.render(mindar.scene, mindar.camera);
+      if (now - lastDraw >= 30) {
+        lastDraw = now;
+        mindar.renderer.render(mindar.scene, mindar.camera);
+      }
     });
   }
 

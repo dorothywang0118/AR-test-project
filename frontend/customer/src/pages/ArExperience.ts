@@ -1,4 +1,4 @@
-import { Vector2 } from 'three';
+import { Color, DoubleSide, Group, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, Vector2, Vector3, type Object3D } from 'three';
 import type { CampaignManifest } from '@shared/types/campaign';
 import { ARError, type AREngineAdapter } from '../ar/adapters/AREngineAdapter';
 import { addDefaultLights, CharacterController } from '../ar/renderer/CharacterController';
@@ -29,6 +29,8 @@ export class ArExperience {
   private adapter: AREngineAdapter | null = null;
   private characters: CharacterController[] = []; // several characters can share one target
   private shows = new Map<string, ShowDirector>(); // targetId → scripted group scene
+  /** One stage per target: follows the tracked anchor through a smoothing filter (steadier picture), holds backdrop + characters. */
+  private stages = new Map<string, { group: Group; backdrop: Mesh | null; init: boolean; t: number; prev: Vector3 }>();
   private removeLights: (() => void) | null = null;
   private manifest: CampaignManifest | null = null;
   private debug = new URLSearchParams(location.search).has('debug');
@@ -103,13 +105,29 @@ export class ArExperience {
 
       const ctx = adapter.getRenderContext();
       this.removeLights = addDefaultLights(ctx.scene);
+      this.renderer = ctx.renderer;
 
       this.show('loading', '載入 3D 角色…');
+      for (const tgt of m.targets) {
+        const group = new Group();
+        group.visible = false;
+        ctx.scene.add(group);
+        let backdrop: Mesh | null = null;
+        if (m.backdrop) {
+          backdrop = new Mesh(
+            new PlaneGeometry(1.06, 1.06),
+            new MeshBasicMaterial({ color: new Color(m.backdrop.color), side: DoubleSide, toneMapped: false }),
+          );
+          backdrop.position.z = 0.003;
+          group.add(backdrop);
+        }
+        this.stages.set(tgt.id, { group, backdrop, init: false, t: 0, prev: new Vector3() });
+      }
       for (const exp of m.experiences) {
         const def = m.characters.find((c) => c.id === exp.characterId);
         if (!def) throw new Error(`character ${exp.characterId} missing in manifest`);
-        const ctrl = new CharacterController(exp);
-        await ctrl.load(resolveUrl(def.modelUrl), adapter.getAnchor(exp.targetId));
+        const ctrl = new CharacterController(exp, def.phrases);
+        await ctrl.load(resolveUrl(def.modelUrl), this.stages.get(exp.targetId)!.group);
         this.characters.push(ctrl);
       }
 
@@ -137,7 +155,9 @@ export class ArExperience {
         $('hint').textContent = '請將相機對準禮物盒圖案';
         $('hint').classList.remove('found');
       });
+      const anchors = new Map(m.targets.map((t) => [t.id, adapter.getAnchor(t.id)]));
       adapter.onFrame((dt) => {
+        this.followAnchors(anchors, dt);
         this.shows.forEach((s) => s.update(dt));
         this.characters.forEach((c) => c.update(dt));
         this.tickDebug();
@@ -167,6 +187,47 @@ export class ArExperience {
     }
   }
 
+  private renderer: { info: { render: { calls: number; triangles: number } } } | null = null;
+  private p = new Vector3();
+  private q = new Quaternion();
+  private sc = new Vector3();
+
+  /**
+   * Copy each tracked anchor's pose onto its stage through a low-pass filter: tiny tracking noise is
+   * smoothed away (no more trembling), fast phone movement is followed quickly.
+   */
+  private followAnchors(anchors: Map<string, Object3D>, dt: number): void {
+    this.stages.forEach((st, id) => {
+      const a = anchors.get(id);
+      st.group.visible = !!a?.visible;
+      if (!a || !a.visible) {
+        st.init = false;
+        return;
+      }
+      a.matrix.decompose(this.p, this.q, this.sc);
+      if (!st.init) {
+        st.group.position.copy(this.p);
+        st.group.quaternion.copy(this.q);
+        st.group.scale.copy(this.sc);
+        st.prev.copy(this.p);
+        st.init = true;
+        st.t = 0;
+      } else {
+        const dist = this.p.distanceTo(st.group.position) / Math.max(this.sc.x, 1e-6);
+        const rate = 10 + 60 * Math.min(1, dist / 0.15); // still → 10/s (steady), moving fast → 70/s (keeps up)
+        const k = 1 - Math.exp(-dt * rate);
+        st.group.position.lerp(this.p, k);
+        st.group.quaternion.slerp(this.q, k);
+        st.group.scale.lerp(this.sc, k);
+      }
+      if (st.backdrop && st.t < 1) {
+        st.t = Math.min(1, st.t + dt / 0.35); // backdrop pops in
+        const e = 1 - Math.pow(1 - st.t, 3);
+        st.backdrop.scale.setScalar(Math.max(e, 0.001));
+      }
+    });
+  }
+
   private tickDebug(): void {
     this.frames++;
     const now = performance.now();
@@ -177,6 +238,7 @@ export class ArExperience {
       if (this.debug) {
         $('debug').textContent =
           `render fps: ${this.fps}\n` +
+          `draw calls: ${this.renderer?.info.render.calls ?? '—'}  tris: ${this.renderer?.info.render.triangles ?? '—'}\n` +
           `first detect: ${this.firstFoundMs ?? '—'} ms (from tap Start)\n` +
           `found/lost events: ${this.foundEvents}/${this.lostEvents}\n` +
           `target: ${this.lastTargetState}\n` +
@@ -201,6 +263,16 @@ export class ArExperience {
     this.characters.forEach((c) => c.dispose());
     this.characters = [];
     this.shows.clear();
+    this.stages.forEach((s) => {
+      s.group.removeFromParent();
+      s.group.traverse((o) => {
+        if (o instanceof Mesh) {
+          o.geometry.dispose();
+          (o.material as MeshBasicMaterial).dispose();
+        }
+      });
+    });
+    this.stages.clear();
     this.removeLights?.();
     this.removeLights = null;
     if (this.adapter) {

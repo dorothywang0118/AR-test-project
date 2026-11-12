@@ -31,7 +31,7 @@ CHARS = {
               pants="#4a4f3d", shoes="#2b2b30", flopdir=-1),
     "d": dict(h=166, bw=0.90, hair="#6b4630", style="wavy", glasses=None, tee="#b8bcc4", jacket="#34343e",
               pants="#26262c", shoes="#222222", bag="#5f7447", wide=True, flopdir=1),
-    "e": dict(h=150, bw=1.00, hair="#1f1c22", style="bun", glasses=None, tee="#ffffff", jacket="#ece1c3",
+    "e": dict(h=150, bw=1.00, hair="#1f1c22", style="braid", glasses=None, tee="#ffffff", jacket="#ece1c3",
               collar="#b98a4e", pants="#4f78b5", shoes="#9bb6cf", flopdir=1),
 }
 
@@ -60,6 +60,14 @@ def qx(a):
 
 def qy(a):
     return (0.0, math.sin(a / 2), 0.0, math.cos(a / 2))
+
+
+def qrot(q, v):
+    """Rotate vector v by quaternion q."""
+    x, y, z, w = q
+    vx, vy, vz = v
+    tx, ty, tz = 2 * (y * vz - z * vy), 2 * (z * vx - x * vz), 2 * (x * vy - y * vx)
+    return (vx + w * tx + (y * tz - z * ty), vy + w * ty + (z * tx - x * tz), vz + w * tz + (x * ty - y * tx))
 
 
 def qmul(a, b):
@@ -118,6 +126,7 @@ class Builder:
         self.bin = bytearray()
         self.views, self.accs = [], []
         self.mesh_cache = {}
+        self.buckets = {}  # (parent, colour) -> merged geometry (static leaf parts share one draw call)
         self.anims = []
         self.byname = {}
 
@@ -185,12 +194,26 @@ class Builder:
         return name
 
     def part(self, name, parent, kind, dims, color, t=None, r=None, s=None, **kw):
-        if kind == "ell":
-            geom = ellipsoid(*dims, **kw)
-        else:
-            geom = box(*dims)
-        key = (kind, tuple(round(d, 5) for d in dims), tuple(sorted(kw.items())))
-        return self.node(name, parent, t, r, s, self.mesh(key, geom, color))
+        """Static leaf shape. Merged with its siblings of the same colour into ONE mesh (fewer draw calls)."""
+        geom = ellipsoid(*dims, **kw) if kind == "ell" else box(*dims)
+        pos, nor, idx = geom
+        rot = r or (0.0, 0.0, 0.0, 1.0)
+        sc = s or (1.0, 1.0, 1.0)
+        tr = t or (0.0, 0.0, 0.0)
+        tp = [tuple(a + b for a, b in zip(qrot(rot, (p[0] * sc[0], p[1] * sc[1], p[2] * sc[2])), tr)) for p in pos]
+        tn = [qrot(rot, n) for n in nor]
+        bk = self.buckets.setdefault((parent, color), ([], [], []))
+        base = len(bk[0])
+        bk[0].extend(tp)
+        bk[1].extend(tn)
+        bk[2].extend(i + base for i in idx)
+        return name
+
+    def flush_buckets(self):
+        for (parent, color), (pos, nor, idx) in self.buckets.items():
+            assert len(pos) < 65536
+            self.node(f"{parent}_m_{color.lstrip('#')}", parent, None, None, None, self.mesh(("m", parent, color), (pos, nor, idx), color))
+        self.buckets = {}
 
     # -- animation
     def anim(self, name, tracks):
@@ -207,6 +230,7 @@ class Builder:
         self.anims.append({"name": name, "samplers": samplers, "channels": channels})
 
     def write(self, path, root_name):
+        self.flush_buckets()
         gltf = {"asset": {"version": "2.0", "generator": "store-ar-platform/tools/make_chibi_glb.py"},
                 "scene": 0, "scenes": [{"nodes": [self.byname[root_name]]}], "nodes": self.nodes,
                 "meshes": self.meshes, "materials": self.mats, "animations": self.anims,
@@ -303,7 +327,7 @@ def seg(b, name, parent, p1, p2, th, color, flat_z=None):
 def build_hair(b, c):
     h, st = c["hair"], c["style"]
     hy = HEAD_LOCAL_Y
-    t1 = {"short": 1.12, "long8": 1.12, "jp": 1.15, "wavy": 1.1, "bun": 1.15}[st]
+    t1 = {"short": 1.12, "long8": 1.12, "jp": 1.15, "wavy": 1.1, "bun": 1.15, "braid": 1.12}[st]
     b.part("HairDome", "Head", "ell", (0.292, 0.266, 0.262), h, t=[0, hy + 0.008, -0.012], nt=10, np_=18, t0=0, t1=t1)
     if st in ("long8", "wavy"):
         # long back hair
@@ -325,6 +349,15 @@ def build_hair(b, c):
         for i, x in enumerate((-0.2, -0.1, 0.0, 0.1, 0.2)):
             b.part(f"Tooth{i}", "Head", "box", (0.07, 0.07, 0.04), h, t=[x, hy + 0.135 - (0.015 if i % 2 else 0), 0.21],
                    r=qz(math.pi / 4))
+    if st == "braid":  # bob with straight bangs + one side braid (reference photo from the owner)
+        b.part("Fringe", "Head", "box", (0.47, 0.07, 0.06), h, t=[0, hy + 0.125, 0.205])
+        for sx in (-1, 1):
+            b.part(f"BobSide{sx}", "Head", "ell", (0.05, 0.12, 0.12), h, t=[sx * 0.262, hy - 0.03, -0.01], nt=8, np_=10)
+            b.part(f"Fall{sx}", "Head", "ell", (0.032, 0.06, 0.05), h, t=[sx * 0.255, hy + 0.09, 0.15], nt=6, np_=8)
+        b.part("BobBack", "Head", "ell", (0.27, 0.17, 0.12), h, t=[0, hy - 0.03, -0.14], nt=8, np_=14)
+        for i, (x, y, r) in enumerate([(-0.27, -0.13, 0.05), (-0.275, -0.2, 0.046), (-0.27, -0.27, 0.043), (-0.275, -0.34, 0.04)]):
+            b.part(f"Braid{i}", "Head", "ell", (r, r * 1.15, r), h, t=[x, hy + y, 0.04], nt=6, np_=8)
+        b.part("BraidTie", "Head", "ell", (0.034, 0.03, 0.034), "#e85d75", t=[-0.272, hy - 0.385, 0.04], nt=6, np_=8)
     if st == "bun":
         b.part("Bun", "Head", "ell", (0.075, 0.075, 0.075), h, t=[0, hy + 0.27, -0.03])
 
